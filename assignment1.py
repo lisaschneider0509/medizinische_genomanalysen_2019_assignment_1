@@ -1,6 +1,7 @@
 import mysql.connector
+import pysam
 
-__author__ = 'XXX'
+__author__ = 'Lisa Schneider'
 
 ##
 ## Concept:
@@ -12,7 +13,14 @@ class Assignment1:
     
     def __init__(self):
         ## Your gene of interest
-        self.gene = ""
+        self.gene = 'CRYZL1'
+        self.alignment_file = pysam.AlignmentFile("chr21.bam", "rb")
+        self.download_gene_coordinates("hg38", "gene_coordinates.txt")
+        self.gene_list = self.read_gene_coordinates()
+        self.gene_coordinates = self.get_coordinates_of_gene()
+        self.reads = self.get_all_reads()
+
+
 
     
     def download_gene_coordinates(self, genome_reference, file_name):
@@ -38,7 +46,7 @@ class Assignment1:
                         "refGene.exonEnds"]
         
         ## Build query
-        query = "SELECT DISTINCT %s from refGene" % ",".join(query_fields)
+        query = "SELECT DISTINCT {} from refGene WHERE name2 = '{}'".format(",".join(query_fields), self.gene)
         
         ## Execute query
         cursor.execute(query)
@@ -54,20 +62,43 @@ class Assignment1:
         cursor.close()
         cnx.close()
         
-        print("Done fetching data")
-        
+        print("Done fetching data\n")
+
+    def read_gene_coordinates(self):
+        with open("gene_coordinates.txt", "r") as fh:
+            for row in fh:
+                if self.gene in row:
+                    gene_list = row.replace(")", "").replace("(", "").replace("'", "")
+                    gene_list = gene_list.split(", ")
+                    break
+        return gene_list
+
     def get_coordinates_of_gene(self):
-        ## Use UCSC file
-        print("todo")
+        gene = self.gene_list[0]
+        chromosome = self.gene_list[2]
+        start = self.gene_list[3]
+        stop = self.gene_list[4]
+        print(f"Coordinates of gene {gene}: \n"
+              f"\tchromosome - {chromosome} \n"
+              f"\tstart - {start} \n"
+              f"\tstop - {stop}")
+        return [chromosome, int(start), int(stop)]
         
     def get_gene_symbol(self):
-        print("todo")
+        print(f"Gene symbol: {self.gene}")
                         
     def get_sam_header(self):
         print("todo")
-        
+
+    def get_all_reads(self):
+        reads = list(self.alignment_file.fetch(self.gene_coordinates[0],
+                                               self.gene_coordinates[1],
+                                               self.gene_coordinates[2]))
+        return reads
+
     def get_properly_paired_reads_of_gene(self):
-        print("todo")
+        proper_reads = len([i for i in self.reads if i.is_proper_pair])
+        print(f"Number of properly paired reads: {proper_reads}")
         
     def get_gene_reads_with_indels(self):
         print("todo")
@@ -85,10 +116,16 @@ class Assignment1:
         print("todo")
         
     def get_number_of_exons(self):
-        print("ads")
+        exons = self.gene_list[6]
+        print(f"exons : {exons}")
     
     
     def print_summary(self):
+        self.read_gene_coordinates()
+        self.get_gene_symbol()
+        self.get_number_of_exons()
+        self.get_properly_paired_reads_of_gene()
+
         print("Print all results here")
     
     
@@ -103,5 +140,3 @@ def main():
         
 if __name__ == '__main__':
     main()
-    
-    
