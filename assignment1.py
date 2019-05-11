@@ -1,5 +1,6 @@
 import mysql.connector
 import pysam
+import numpy
 
 __author__ = 'Lisa Schneider'
 
@@ -18,11 +19,11 @@ class Assignment1:
         self.download_gene_coordinates("hg38", "gene_coordinates.txt")
         self.gene_list = self.read_gene_coordinates()
         self.gene_coordinates = self.get_coordinates_of_gene()
+        self.chromosome = self.gene_coordinates[0]
+        self.start = self.gene_coordinates[1]
+        self.stop = self.gene_coordinates[2]
         self.reads = self.get_all_reads()
 
-
-
-    
     def download_gene_coordinates(self, genome_reference, file_name):
         ## TODO concept
         
@@ -52,7 +53,6 @@ class Assignment1:
         cursor.execute(query)
         
         ## Write to file
-        ## TODO this may need some work 
         with open(file_name, "w") as fh:
             for row in cursor:
                 fh.write(str(row) + "\n")
@@ -85,15 +85,24 @@ class Assignment1:
         return [chromosome, int(start), int(stop)]
         
     def get_gene_symbol(self):
+        # todo check if gene symbol is right
         print(f"Gene symbol: {self.gene}")
                         
     def get_sam_header(self):
-        print("todo")
+        # todo change format
+        print("\nSam Header:")
+        for k, v in self.alignment_file.header["HD"].items():
+            if k == "SO":
+                print(f"\tSO (Sorting order of Alignments): {v}")
+            if k == "VN":
+                print(f"\tVN (Format version): {v}")
+            if k == "GO":
+                print(f"\tGO: (Grouping of alignments): {v}")
 
     def get_all_reads(self):
-        reads = list(self.alignment_file.fetch(self.gene_coordinates[0],
-                                               self.gene_coordinates[1],
-                                               self.gene_coordinates[2]))
+        reads = list(self.alignment_file.fetch(self.chromosome,
+                                               self.start,
+                                               self.stop))
         return reads
 
     def get_properly_paired_reads_of_gene(self):
@@ -101,19 +110,51 @@ class Assignment1:
         print(f"Number of properly paired reads: {proper_reads}")
         
     def get_gene_reads_with_indels(self):
-        print("todo")
+        # Cigar = Compact Idiosyncratic Gapped Alignment Report
+        # cigar operation 1 = insertion
+        # cigar operation 2 = deletion
+        rd_indel = []
+        for i in self.reads:
+            if not i.is_unmapped:
+                cig = i.cigartuples
+                for (operation, length) in cig:
+                    if (operation == 1) or (operation == 2):
+                        rd_indel.append(i)
+        reads_indel = len(rd_indel)
+        print(f"Reads with indels: {reads_indel}")
         
     def calculate_total_average_coverage(self):
-        print("todo")
-        
+        # todo to slow
+        print("Starting to calculate chromosome coverage")
+        chromosome_length = [i["LN"] for i in self.alignment_file.header["SQ"] if i["SN"] == self.chromosome][0]
+        print("chromosome length calculated")
+        coverage = self.alignment_file.count_coverage(self.chromosome, start=0, stop=chromosome_length)
+        print("coverage calculated")
+        chromosome_average_coverage = round(numpy.mean(coverage), 2)
+        print("average coverage calculated")
+        print(f"{chromosome_average_coverage} \n")
+
     def calculate_gene_average_coverage(self):
-        print("todo")
+        chromosome = self.gene_coordinates[0]
+        coverage = self.alignment_file.count_coverage(chromosome,
+                                                      start=self.gene_coordinates[1],
+                                                      stop=self.gene_coordinates[2])
+        average_gene_coverage = round(numpy.mean(coverage), 2)
+        print(f"Average gene coverage: {average_gene_coverage}")
         
     def get_number_mapped_reads(self):
-        print("todo")
+        mapped_reads = 0
+        for i in self.reads:
+            if not i.is_unmapped:
+                mapped_reads += 1
+        print(f"Mapped reads: {mapped_reads}")
 
     def get_region_of_gene(self):
-        print("todo")
+        # todo actually gene locus i think
+        print(f"Genomic Region:\n"
+              f"\tChromosome: {self.chromosome}\n"
+              f"\tStart: {self.start}\n"
+              f"\tStop: {self.stop}")
         
     def get_number_of_exons(self):
         exons = self.gene_list[6]
@@ -121,10 +162,16 @@ class Assignment1:
     
     
     def print_summary(self):
-        self.read_gene_coordinates()
-        self.get_gene_symbol()
-        self.get_number_of_exons()
-        self.get_properly_paired_reads_of_gene()
+        # self.read_gene_coordinates()
+        # self.get_gene_symbol()
+        # self.get_number_of_exons()
+        # self.get_properly_paired_reads_of_gene()
+        # self.get_number_mapped_reads()
+        # self.get_sam_header()
+        self.calculate_total_average_coverage()
+        # self.calculate_gene_average_coverage()
+        # self.get_region_of_gene()
+        # self.get_gene_reads_with_indels()
 
         print("Print all results here")
     
