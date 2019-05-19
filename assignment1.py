@@ -127,17 +127,6 @@ class Assignment1:
         average_total_coverage = sum(total_coverage) / float(len(total_coverage))
         print(f"Average total coverage: {average_total_coverage} \n")
 
-
-        # # todo to slow
-        # print("Starting to calculate chromosome coverage")
-        # chromosome_length = [i["LN"] for i in self.alignment_file.header["SQ"] if i["SN"] == self.chromosome][0]
-        # print("chromosome length calculated")
-        # coverage = self.alignment_file.count_coverage(self.chromosome, start=0, stop=chromosome_length)
-        # print("coverage calculated")
-        # chromosome_average_coverage = round(numpy.mean(coverage), 2)
-        # print("average coverage calculated")
-        # print(f"{chromosome_average_coverage} \n")
-
     def calculate_gene_average_coverage(self):
         coverage = self.alignment_file.count_coverage(self.chromosome,
                                                       start=self.start,
@@ -165,7 +154,6 @@ class Assignment1:
 
     def print_summary(self):
         self.read_gene_coordinates()
-        # print gene coordinates
         print(f"Coordinates of gene {self.gene}: \n"
               f"\tChromosome - {self.chromosome} \n"
               f"\tStart - {self.start} \n"
